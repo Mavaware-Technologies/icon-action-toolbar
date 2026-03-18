@@ -6,13 +6,13 @@
              :class="{ 'rounded': standalone, 'rounded bg-gray-700/5 dark:bg-gray-950': !standalone }"
              class="flex dark:focus:ring-gray-600 justify-evenly">
 
-            <div v-for="{ iconActionToolbar, destructive, uriKey, name } of actions">
+            <div v-for="{ iconActionToolbar, destructive, uriKey, name, authorizedToRun } of actions">
 
                 <button
                     v-tooltip="name"
                     v-if="iconActionToolbar"
                     type="button"
-                    @click.stop="() => $emit('click', uriKey)"
+                    @click.stop="authorizedToRun !== false && $emit('click', uriKey)"
                     :class="{
                         'dark:hover:[&:not(:disabled)]:text-primary-500 px-2': parentType === 'ActionSelector',
                         'w-auto': !isDetailView && !standalone,
@@ -20,6 +20,7 @@
                         'hover:[&:not(:disabled)]:text-red-400 dark:hover:[&:not(:disabled)]:text-red-400 min-w-9': destructive && !isDetailView,
                         'hover:[&:not(:disabled)]:text-primary-500 dark:hover:[&:not(:disabled)]:text-primary-500 min-w-9': !destructive && !isDetailView,
                         'rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none focus:ring px-3 hover:text-gray-500': standalone && isDetailView,
+                        'opacity-50 pointer-events-none': authorizedToRun === false,
                     }"
                     class="inline-flex items-center justify-center toolbar-button h-9 dark:text-gray-400 text-gray-500 disabled:opacity-50 disabled:pointer-events-none">
 

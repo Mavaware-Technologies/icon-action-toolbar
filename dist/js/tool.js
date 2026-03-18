@@ -9316,12 +9316,13 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
     var iconActionToolbar = _ref.iconActionToolbar,
       destructive = _ref.destructive,
       uriKey = _ref.uriKey,
-      name = _ref.name;
+      name = _ref.name,
+      authorizedToRun = _ref.authorizedToRun;
     return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("div", null, [iconActionToolbar ? (0,vue__WEBPACK_IMPORTED_MODULE_0__.withDirectives)(((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("button", {
       key: 0,
       type: "button",
       onClick: (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function () {
-        return _ctx.$emit('click', uriKey);
+        return authorizedToRun !== false && _ctx.$emit('click', uriKey);
       }, ["stop"]),
       "class": (0,vue__WEBPACK_IMPORTED_MODULE_0__.normalizeClass)([{
         'dark:hover:[&:not(:disabled)]:text-primary-500 px-2': $props.parentType === 'ActionSelector',
@@ -9329,7 +9330,8 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         'px-3 w-auto': !$options.isDetailView && $props.parentType === 'LoadingView.vue',
         'hover:[&:not(:disabled)]:text-red-400 dark:hover:[&:not(:disabled)]:text-red-400 min-w-9': destructive && !$options.isDetailView,
         'hover:[&:not(:disabled)]:text-primary-500 dark:hover:[&:not(:disabled)]:text-primary-500 min-w-9': !destructive && !$options.isDetailView,
-        'rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none focus:ring px-3 hover:text-gray-500': $props.standalone && $options.isDetailView
+        'rounded hover:bg-gray-200 dark:hover:bg-gray-800 focus:outline-none focus:ring px-3 hover:text-gray-500': $props.standalone && $options.isDetailView,
+        'opacity-50 pointer-events-none': authorizedToRun === false
       }, "inline-flex items-center justify-center toolbar-button h-9 dark:text-gray-400 text-gray-500 disabled:opacity-50 disabled:pointer-events-none"])
     }, [typeof iconActionToolbar.icon !== 'string' ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createBlock)(_component_Icon, {
       key: 0,
