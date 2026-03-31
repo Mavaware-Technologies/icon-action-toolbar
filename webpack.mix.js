@@ -1,13 +1,20 @@
 let mix = require('laravel-mix')
 const path = require('path');
+const fs = require('fs');
 
 require('./nova.mix')
 require('mix-tailwindcss')
 
+const novaResourcesPathCandidates = [
+    path.resolve(__dirname, '../../vendor/laravel/nova/resources/js'),
+    path.resolve(__dirname, 'vendor/laravel/nova/resources/js'),
+]
+const novaResourcesPath = novaResourcesPathCandidates.find(candidate => fs.existsSync(candidate))
+
 mix.webpackConfig({
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, 'vendor/laravel/nova/resources/js'),
+            '@': novaResourcesPath || path.resolve(__dirname, '../../vendor/laravel/nova/resources/js'),
         }
     }
 });

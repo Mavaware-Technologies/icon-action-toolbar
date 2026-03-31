@@ -3,10 +3,20 @@
     <div class="icon-action-toolbar w-full">
 
         <IconActionToolbar
-            :actions="actionsForSelect"
+            v-if="iconActionsForToolbar.length > 0"
+            :actions="iconActionsForToolbar"
             @click="handleSelectionChange"
             :standalone="false"
             parent-type="ActionSelector"/>
+
+        <component
+            v-if="originalActionSelector && (menuActions.length > 0 || menuPivotActions.length > 0)"
+            :is="originalActionSelector"
+            v-bind="props"
+            :actions="menuActions"
+            :pivot-actions="{ ...props.pivotActions, actions: menuPivotActions }"
+            @actionExecuted="event => emitter('actionExecuted', event)"
+        />
 
         <!-- Confirm Action Modal -->
         <component
@@ -41,6 +51,7 @@
     import { useActions } from '@/composables/useActions'
     import { computed, ref } from 'vue'
     import IconActionToolbar from './IconActionToolbar.vue'
+    import NovaActionSelector from '@/components/ActionSelector.vue'
 
     // Elements
     const actionSelectControl = ref(null)
@@ -84,19 +95,40 @@
         determineActionStrategy()
     }
 
-    const actionsForSelect = computed(() => {
+    const originalActionSelector = computed(() => NovaActionSelector ?? null)
 
+    const hasToolbarIcon = action => Boolean(action?.iconActionToolbar?.icon)
+
+    const sourceActions = computed(() => {
+        return availableActions.value.filter(action => action.showOnTableRow === false)
+    })
+
+    const sourcePivotActions = computed(() => {
+        return availablePivotActions.value.filter(action => action.showOnTableRow === false)
+    })
+
+    const iconActionsForToolbar = computed(() => {
         const actions = [
-            ...availableActions.value,
-            ...availablePivotActions.value.map(a => ({
+            ...sourceActions.value,
+            ...sourcePivotActions.value.map(a => ({
                 group: props.pivotName,
                 uriKey: a.uriKey,
                 name: a.name,
+                iconActionToolbar: a.iconActionToolbar,
+                authorizedToRun: a.authorizedToRun,
+                component: a.component,
             })),
         ]
 
-        return actions.filter(action => action.showOnTableRow === false)
+        return actions.filter(action => hasToolbarIcon(action))
+    })
 
+    const menuActions = computed(() => {
+        return sourceActions.value.filter(action => !hasToolbarIcon(action))
+    })
+
+    const menuPivotActions = computed(() => {
+        return sourcePivotActions.value.filter(action => !hasToolbarIcon(action))
     })
 
 </script>

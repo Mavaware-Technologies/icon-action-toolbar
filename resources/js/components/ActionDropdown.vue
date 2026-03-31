@@ -1,6 +1,6 @@
 <template>
 
-  <div class="icon-action-toolbar">
+  <div class="icon-action-toolbar inline-flex items-center gap-2">
 
     <!-- Confirm Action Modal -->
     <component
@@ -24,13 +24,22 @@
         @close="handleResponseModalClose"
         :data="actionResponseData"/>
 
-  </div>
+    <IconActionToolbar
+        v-if="iconActions.length > 0"
+        :parent-type="parentType"
+        :actions="iconActions"
+        @click="onClick"
+        :standalone="true"/>
 
-  <IconActionToolbar
-      :parent-type="parentType"
-      :actions="availableActions"
-      @click="onClick"
-      :standalone="true"/>
+    <component
+        v-if="originalActionDropdown && menuActions.length > 0"
+        :is="originalActionDropdown"
+        v-bind="props"
+        :actions="menuActions"
+        @actionExecuted="event => emitter('actionExecuted', event)"
+        @show-preview="event => emitter('show-preview', event)"
+    />
+  </div>
 
 </template>
 
@@ -40,6 +49,7 @@ import {useActions} from '@/composables/useActions'
 import {useLocalization} from '@/composables/useLocalization'
 import IconActionToolbar from './IconActionToolbar.vue'
 import {computed, getCurrentInstance} from 'vue'
+import NovaActionDropdown from '@/components/Dropdowns/ActionDropdown.vue'
 
 const emitter = defineEmits(['actionExecuted', 'show-preview'])
 
@@ -73,9 +83,15 @@ const instance = getCurrentInstance()
 
 const runAction = () => executeAction(() => emitter('actionExecuted'))
 const parentType = instance.parent.vnode.type.__file
+const originalActionDropdown = computed(() => NovaActionDropdown ?? null)
+const hasToolbarIcon = action => Boolean(action?.iconActionToolbar?.icon)
 
 const onClick = event => {
-  const action = availableActions.value.find(element => element.uriKey === event)
+  const action = allActionsForClick.value.find(element => element.uriKey === event)
+
+  if (!action) {
+    return
+  }
 
   if (typeof action.onClick === 'function') {
     action.onClick()
@@ -94,9 +110,8 @@ const handleResponseModalClose = () => {
   emitter('actionExecuted')
 }
 
-const availableActions = computed(() => {
-
-  const actions = [...props.actions]
+const extraIconActions = computed(() => {
+  const actions = []
   const resource = instance.parent?.props?.resource
   const currentUser = Nova.store.getters['currentUser']
   const config = Nova.config('icon_action_toolbar')
@@ -174,6 +189,35 @@ const availableActions = computed(() => {
   }
 
   return actions
+})
+
+const sourceActions = computed(() => {
+  const hasResourceContext = Boolean(instance.parent?.props?.resource || props.resource)
+
+  return (props.actions || []).filter(action => {
+    // Row/detail dropdowns should never show standalone actions.
+    if (hasResourceContext) {
+      return !action.standalone
+    }
+
+    // Index standalone area always shows standalone actions.
+    return action.standalone === true
+  })
+})
+
+const allActionsForClick = computed(() => {
+  return [...sourceActions.value, ...extraIconActions.value]
+})
+
+const iconActions = computed(() => {
+  return [
+    ...sourceActions.value.filter(action => hasToolbarIcon(action)),
+    ...extraIconActions.value.filter(action => hasToolbarIcon(action)),
+  ]
+})
+
+const menuActions = computed(() => {
+  return sourceActions.value.filter(action => !hasToolbarIcon(action))
 })
 
 </script>
