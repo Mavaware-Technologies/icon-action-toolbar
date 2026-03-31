@@ -1,6 +1,6 @@
 <template>
 
-    <div class="icon-action-toolbar w-full">
+    <div class="icon-action-toolbar w-full flex items-center gap-2">
 
         <IconActionToolbar
             v-if="iconActionsForToolbar.length > 0"
