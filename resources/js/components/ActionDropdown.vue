@@ -32,13 +32,21 @@
         :standalone="true"/>
 
     <component
-        v-if="originalActionDropdown && menuActions.length > 0"
+        v-if="originalActionDropdown && showOriginalDropdown"
         :is="originalActionDropdown"
-        v-bind="props"
+        v-bind="dropdownProps"
         :actions="menuActions"
         @actionExecuted="event => emitter('actionExecuted', event)"
         @show-preview="event => emitter('show-preview', event)"
-    />
+    >
+      <template v-if="slots.trigger" #trigger>
+        <slot name="trigger" />
+      </template>
+      <template v-if="slots.menu" #menu>
+        <slot name="menu" />
+      </template>
+      <slot />
+    </component>
   </div>
 
 </template>
@@ -46,14 +54,15 @@
 <script setup>
 
 import {useActions} from '@/composables/useActions'
-import {useLocalization} from '@/composables/useLocalization'
 import IconActionToolbar from './IconActionToolbar.vue'
-import {computed, getCurrentInstance} from 'vue'
+import {computed, getCurrentInstance, useAttrs, useSlots} from 'vue'
 import NovaActionDropdown from '@/components/Dropdowns/ActionDropdown.vue'
+defineOptions({inheritAttrs: false})
 
 const emitter = defineEmits(['actionExecuted', 'show-preview'])
 
 const props = defineProps({
+  resource: {type: Object, default: null},
   resourceName: {},
   viaResource: {},
   viaResourceId: {},
@@ -63,6 +72,7 @@ const props = defineProps({
   selectedResources: {type: [Array, String], default: () => []},
   endpoint: {type: String, default: null},
   triggerDuskAttribute: {type: String, default: null},
+  showHeadings: {type: Boolean, default: false},
 })
 
 const {
@@ -78,13 +88,15 @@ const {
   actionResponseData,
 } = useActions(props, emitter, Nova.store)
 
-const {__} = useLocalization()
 const instance = getCurrentInstance()
+const attrs = useAttrs()
+const slots = useSlots()
 
 const runAction = () => executeAction(() => emitter('actionExecuted'))
 const parentType = instance.parent.vnode.type.__file
 const originalActionDropdown = computed(() => NovaActionDropdown ?? null)
 const hasToolbarIcon = action => Boolean(action?.iconActionToolbar?.icon)
+const dropdownProps = computed(() => ({...attrs, ...props}))
 
 const onClick = event => {
   const action = allActionsForClick.value.find(element => element.uriKey === event)
@@ -110,114 +122,22 @@ const handleResponseModalClose = () => {
   emitter('actionExecuted')
 }
 
-const extraIconActions = computed(() => {
-  const actions = []
-  const resource = instance.parent?.props?.resource
-  const currentUser = Nova.store.getters['currentUser']
-  const config = Nova.config('icon_action_toolbar')
-  const isViaManyToMany = instance.parent?.props?.viaManyToMany === true
-
-  if (resource && isViaManyToMany === false) {
-
-    if (resource.authorizedToReplicate) {
-
-      actions.push({
-        name: __('Replicate'),
-        uriKey: '__replicate-action__',
-        iconActionToolbar: {icon: config.icons.replicate},
-        onClick: () => {
-
-          const url = instance.ctx.$url(`/resources/${props.resourceName}/${resource.id.value}/replicate`, {
-            viaResource: props.viaResource,
-            viaResourceId: props.viaResourceId,
-            viaRelationship: props.viaRelationship,
-          }).replace(Nova.config('base'), '')
-
-          Nova.visit(url)
-        },
-      })
-    }
-
-    if (resource.authorizedToView && resource.previewHasFields) {
-
-      actions.push({
-        name: __('Preview'),
-        uriKey: '__preview-action__',
-        iconActionToolbar: {icon: config.icons.preview},
-        onClick: () => instance.parent.emit('show-preview'),
-      })
-    }
-
-    if (currentUser.canImpersonate && resource.authorizedToImpersonate) {
-
-      actions.push({
-        name: __('Impersonate'),
-        uriKey: '__impersonate-action__',
-        iconActionToolbar: {icon: config.icons.impersonate},
-        onClick: () => instance.parent.ctx.startImpersonating({
-          resource: props.resourceName,
-          resourceId: resource.id.value,
-        }),
-      })
-    }
-
-    const isIndexPage = computed(() => {
-      const url = window.location.pathname
-      // Index pages typically end with the resource name
-      return /\/resources\/[\w\-]+$/.test(url)
-    })
-
-    const isDetailPage = computed(() => {
-      const url = window.location.pathname
-      // Match both numeric IDs and UUID patterns at the end of the URL
-      // UUID pattern: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (where x is hex)
-      return /\/resources\/[\w\-]+\/(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(url)
-    })
-
-    if (resource.authorizedToDelete
-        && !resource.softDeleted
-        && isDetailPage.value
-        && props.selectedResources.length === 1
-        && (props.selectedResources[0] === props.viaResourceId || props.viaResourceId === undefined)) {
-      actions.push({
-        name: __('Delete Resource'),
-        uriKey: '__delete-resource-action__',
-        iconActionToolbar: {icon: config.icons.delete_resource},
-        onClick: () => instance.parent.ctx.openDeleteModal(),
-      })
-    }
-  }
-
-  return actions
-})
-
-const sourceActions = computed(() => {
-  const hasResourceContext = Boolean(instance.parent?.props?.resource || props.resource)
-
-  return (props.actions || []).filter(action => {
-    // Row/detail dropdowns should never show standalone actions.
-    if (hasResourceContext) {
-      return !action.standalone
-    }
-
-    // Index standalone area always shows standalone actions.
-    return action.standalone === true
-  })
-})
+const sourceActions = computed(() => props.actions || [])
 
 const allActionsForClick = computed(() => {
-  return [...sourceActions.value, ...extraIconActions.value]
+  return [...sourceActions.value]
 })
 
 const iconActions = computed(() => {
-  return [
-    ...sourceActions.value.filter(action => hasToolbarIcon(action)),
-    ...extraIconActions.value.filter(action => hasToolbarIcon(action)),
-  ]
+  return sourceActions.value.filter(action => hasToolbarIcon(action))
 })
 
 const menuActions = computed(() => {
   return sourceActions.value.filter(action => !hasToolbarIcon(action))
+})
+
+const showOriginalDropdown = computed(() => {
+  return menuActions.value.length > 0 || Boolean(slots.menu || slots.trigger)
 })
 
 </script>
