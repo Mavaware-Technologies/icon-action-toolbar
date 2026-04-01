@@ -13,6 +13,10 @@ const novaResourcesPath = novaResourcesPathCandidates.find(candidate => fs.exist
 
 mix.webpackConfig({
     resolve: {
+        modules: [
+            path.resolve(__dirname, 'node_modules'),
+            'node_modules',
+        ],
         alias: {
             '@': novaResourcesPath || path.resolve(__dirname, '../../vendor/laravel/nova/resources/js'),
         }

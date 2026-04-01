@@ -6,7 +6,7 @@
              :class="{ 'rounded': standalone, 'rounded bg-gray-700/5 dark:bg-gray-950': !standalone }"
              class="flex dark:focus:ring-gray-600 justify-evenly">
 
-            <div v-for="{ iconActionToolbar, destructive, uriKey, name, authorizedToRun } of actions">
+            <div v-for="{ iconActionToolbar, destructive, uriKey, name, authorizedToRun } of actions" :key="uriKey">
 
                 <button
                     v-tooltip="name"
@@ -30,6 +30,12 @@
                         <div v-html="iconActionToolbar.icon"/>
                     </template>
 
+                    <font-awesome-icon
+                        v-else-if="isFontAwesomeIcon(iconActionToolbar.icon)"
+                        :icon="resolveFontAwesomeIcon(iconActionToolbar.icon)"
+                        class="w-5 h-5"
+                    />
+
                     <Icon v-else-if="iconActionToolbar.icon" :name="iconActionToolbar.icon"/>
 
                     <div class="ml-1 mr-1 whitespace-nowrap" v-if="iconActionToolbar.label">
@@ -49,12 +55,57 @@
 <script>
 
     import { Icon, Button } from 'laravel-nova-ui'
+    import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+    import { findIconDefinition, library } from '@fortawesome/fontawesome-svg-core'
+    import { fas } from '@fortawesome/free-solid-svg-icons'
+    import { far } from '@fortawesome/free-regular-svg-icons'
     import {computed} from "vue";
 
+    library.add(fas, far)
+
     export default {
-        components: { Icon, Button },
+        components: { Icon, Button, FontAwesomeIcon },
         emits: [ 'click' ],
         props: [ 'actions', 'standalone', 'parentType' ],
+        methods: {
+            isFontAwesomeIcon(icon) {
+                return typeof icon === 'string' && /^(fa|fas|far):/.test(icon.trim())
+            },
+            fontAwesomeStyle(icon) {
+                const normalized = icon.trim().toLowerCase()
+
+                if (normalized.startsWith('far:')) {
+                    return 'far'
+                }
+
+                // "fa:" remains backward-compatible and maps to solid.
+                return 'fas'
+            },
+            normalizeFontAwesomeIcon(icon) {
+                return icon.replace(/^(fa|fas|far):/i, '').trim()
+            },
+            resolveFontAwesomeIcon(icon) {
+                const style = this.fontAwesomeStyle(icon)
+                const name = this.normalizeFontAwesomeIcon(icon)
+
+                if (this.fontAwesomeIconExists(style, name)) {
+                    return [style, name]
+                }
+
+                if (style !== 'fas' && this.fontAwesomeIconExists('fas', name)) {
+                    return ['fas', name]
+                }
+
+                return [style, name]
+            },
+            fontAwesomeIconExists(style, name) {
+                try {
+                    return Boolean(findIconDefinition({ prefix: style, iconName: name }))
+                } catch (error) {
+                    return false
+                }
+            },
+        },
         computed: {
             isDetailView() {
                 const isDetailPage = computed(() => {
