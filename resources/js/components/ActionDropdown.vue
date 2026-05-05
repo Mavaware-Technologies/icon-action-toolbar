@@ -128,16 +128,46 @@ const allActionsForClick = computed(() => {
   return [...sourceActions.value]
 })
 
+const isVisibleMenuAction = action => {
+  if (!action) {
+    return false
+  }
+
+  // If Nova marks the action as unauthorized, do not count it for the row dropdown.
+  if (action.authorizedToRun === false) {
+    return false
+  }
+
+  // Require a usable label/name to avoid empty placeholder entries.
+  return typeof action.name === 'string' && action.name.trim().length > 0
+}
+
 const iconActions = computed(() => {
   return sourceActions.value.filter(action => hasToolbarIcon(action))
 })
 
 const menuActions = computed(() => {
-  return sourceActions.value.filter(action => !hasToolbarIcon(action))
+  return sourceActions.value.filter(action => !hasToolbarIcon(action) && isVisibleMenuAction(action))
+})
+
+const isResourceDetailPage = computed(() => {
+  const path = window.location.pathname
+
+  return /\/resources\/[\w\-]+\/(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(path)
 })
 
 const showOriginalDropdown = computed(() => {
-  return menuActions.value.length > 0 || Boolean(slots.menu || slots.trigger)
+  if (menuActions.value.length > 0) {
+    return true
+  }
+
+  // Hide the "..." dropdown trigger on index pages when there are no
+  // non-icon actions. Keep slot-based trigger support only on resource detail pages.
+  if (!isResourceDetailPage.value) {
+    return false
+  }
+
+  return Boolean(slots.menu || slots.trigger)
 })
 
 </script>
