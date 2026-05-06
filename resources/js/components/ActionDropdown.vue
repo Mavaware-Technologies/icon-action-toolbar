@@ -133,8 +133,13 @@ const isVisibleMenuAction = action => {
     return false
   }
 
+  // Row dropdown should only consider row actions.
+  if (action.showOnTableRow === false || action.standalone === true) {
+    return false
+  }
+
   // If Nova marks the action as unauthorized, do not count it for the row dropdown.
-  if (action.authorizedToRun === false) {
+  if (action.authorizedToRun === false || action.authorizedToSee === false) {
     return false
   }
 
@@ -150,10 +155,12 @@ const menuActions = computed(() => {
   return sourceActions.value.filter(action => !hasToolbarIcon(action) && isVisibleMenuAction(action))
 })
 
-const isResourceDetailPage = computed(() => {
-  const path = window.location.pathname
-
-  return /\/resources\/[\w\-]+\/(\d+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(path)
+const hasImplicitDropdownActions = computed(() => {
+  return Boolean(
+    (props.resource?.authorizedToView === true && props.resource?.previewHasFields === true) ||
+    props.resource?.authorizedToReplicate === true ||
+    props.resource?.authorizedToImpersonate === true
+  )
 })
 
 const showOriginalDropdown = computed(() => {
@@ -161,13 +168,13 @@ const showOriginalDropdown = computed(() => {
     return true
   }
 
-  // Hide the "..." dropdown trigger on index pages when there are no
-  // non-icon actions. Keep slot-based trigger support only on resource detail pages.
-  if (!isResourceDetailPage.value) {
-    return false
+  // Keep the original dropdown when Nova provides built-in row actions
+  // (for example impersonation), even if no custom menu action exists.
+  if (hasImplicitDropdownActions.value) {
+    return true
   }
 
-  return Boolean(slots.menu || slots.trigger)
+  return false
 })
 
 </script>
