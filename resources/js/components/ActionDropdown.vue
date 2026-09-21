@@ -128,22 +128,23 @@ const allActionsForClick = computed(() => {
   return [...sourceActions.value]
 })
 
+const isRowOrDetailDropdown = computed(() => Boolean(props.resource))
+
 const isVisibleMenuAction = action => {
   if (!action) {
     return false
   }
 
-  // Row dropdown should only consider row actions.
-  if (action.showOnTableRow === false || action.standalone === true) {
+  // Index/lens heading dropdowns receive standalone actions (mass import).
+  // Only row/detail dropdowns should hide standalone and non-row actions.
+  if (isRowOrDetailDropdown.value && (action.showOnTableRow === false || action.standalone === true)) {
     return false
   }
 
-  // If Nova marks the action as unauthorized, do not count it for the row dropdown.
   if (action.authorizedToRun === false || action.authorizedToSee === false) {
     return false
   }
 
-  // Require a usable label/name to avoid empty placeholder entries.
   return typeof action.name === 'string' && action.name.trim().length > 0
 }
 
