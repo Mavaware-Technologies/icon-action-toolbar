@@ -99,13 +99,12 @@
 
     const hasToolbarIcon = action => Boolean(action?.iconActionToolbar?.icon)
 
-    const sourceActions = computed(() => {
-        return availableActions.value.filter(action => action.showOnTableRow === false)
-    })
+    // Nova already limits this list to index-visible, non-standalone actions
+    // when rows are selected. Do not drop showOnTableRow: showInline() only
+    // adds the row button and the action must stay available in bulk too.
+    const sourceActions = computed(() => availableActions.value)
 
-    const sourcePivotActions = computed(() => {
-        return availablePivotActions.value.filter(action => action.showOnTableRow === false)
-    })
+    const sourcePivotActions = computed(() => availablePivotActions.value)
 
     const iconActionsForToolbar = computed(() => {
         const actions = [
