@@ -55,6 +55,7 @@
 
 import {useActions} from '@/composables/useActions'
 import IconActionToolbar from './IconActionToolbar.vue'
+import {isVisibleMenuAction} from '../visibleMenuAction'
 import {computed, getCurrentInstance, useAttrs, useSlots} from 'vue'
 import NovaActionDropdown from '@/components/Dropdowns/ActionDropdown.vue'
 defineOptions({inheritAttrs: false})
@@ -128,32 +129,19 @@ const allActionsForClick = computed(() => {
   return [...sourceActions.value]
 })
 
-const isRowOrDetailDropdown = computed(() => Boolean(props.resource))
-
-const isVisibleMenuAction = action => {
-  if (!action) {
-    return false
-  }
-
-  // Index/lens heading dropdowns receive standalone actions (mass import).
-  // Only row/detail dropdowns should hide standalone and non-row actions.
-  if (isRowOrDetailDropdown.value && (action.showOnTableRow === false || action.standalone === true)) {
-    return false
-  }
-
-  if (action.authorizedToRun === false || action.authorizedToSee === false) {
-    return false
-  }
-
-  return typeof action.name === 'string' && action.name.trim().length > 0
-}
-
 const iconActions = computed(() => {
   return sourceActions.value.filter(action => hasToolbarIcon(action))
 })
 
+const menuContext = computed(() => ({
+  parentFile: parentType,
+  hasResource: Boolean(props.resource),
+}))
+
+// Icons move out of the "...". Detail keeps every other action Nova sent.
+// The index row and the index heading keep their own empty-menu rules.
 const menuActions = computed(() => {
-  return sourceActions.value.filter(action => !hasToolbarIcon(action) && isVisibleMenuAction(action))
+  return sourceActions.value.filter(action => !hasToolbarIcon(action) && isVisibleMenuAction(action, menuContext.value))
 })
 
 const hasImplicitDropdownActions = computed(() => {
